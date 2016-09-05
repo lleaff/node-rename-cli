@@ -1,0 +1,22 @@
+{
+  "name": "rename-cli",
+  "version": "0.0.1",
+  "description": "Command-line renaming utility using JavaScript RegExps",
+  "main": "rename.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lleaff/node-rename-cli.git"
+  },
+  "keywords": [
+    "cli"
+  ],
+  "author": "lleaff",
+  "license": "GPL-2.0",
+  "bugs": {
+    "url": "https://github.com/lleaff/node-rename-cli/issues"
+  },
+  "homepage": "https://github.com/lleaff/node-rename-cli#readme"
+}
