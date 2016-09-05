@@ -1,5 +1,5 @@
 ```
-rename.js [OPTION]... EXPRESSION REPLACEMENT FILE
+rename.js [OPTION]... EXPRESSION REPLACEMENT FILE...
 
   -h, --help    Show this help.
   -v, --verbose         Print extended information.
