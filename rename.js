@@ -113,7 +113,7 @@ const USAGE = (() => {
         if (opt.description) { help += `\t${opt.description}` }
         return `${help}\n`;
     }
-    const description = `${basename(scriptPath)} [OPTION]... EXPRESSION REPLACEMENT FILE\n`;
+    const description = `${basename(scriptPath)} [OPTION]... EXPRESSION REPLACEMENT FILE...\n`;
     const optionDescriptions = Object.values(OPTION_DEFINITIONS)
                                                 .reduce((p, opt) => `${p ? `${p}` : ''}${generateOptionHelp(opt)}`,
                                                         null);
