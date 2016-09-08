@@ -147,7 +147,7 @@ const [, scriptPath, ...args] = process.argv
 function generateUsage({ progDescription, optionDefinitions }) {
     function generateOptionHelp({ short, long, description = '' }) {
         let switches = [];
-        if (short) { switches.push(`-${short}`); }
+        if (short) { switches.push(` -${short}`); }
         if (long) { switches.push(`--${long}`); }
         return { switches: switches.join(', '), description: description};
     }
@@ -163,7 +163,7 @@ function generateUsage({ progDescription, optionDefinitions }) {
     const optionDescriptions = optInfos.map(({ switches, description }) =>
                                            `${switches} ${description}`)
                                        .join('\n');
-    return `${progDescription}\n${optionDescriptions}`;
+    return ` ${progDescription}\n${optionDescriptions}`;
 }
 
 
@@ -192,7 +192,7 @@ const OPTION_DEFINITIONS = {
 };
 
 const USAGE = generateUsage({
-  progDescription: `${basename(scriptPath)} [OPTION]... EXPRESSION REPLACEMENT FILE\n`,
+  progDescription: `${basename(scriptPath)} [OPTION]... EXPRESSION REPLACEMENT FILE...\n`,
   optionDefinitions: OPTION_DEFINITIONS
 });
 

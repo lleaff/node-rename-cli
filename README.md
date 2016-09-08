@@ -1,7 +1,8 @@
 ```
-rename.js [OPTION]... EXPRESSION REPLACEMENT FILE...
+ rename.js [OPTION]... EXPRESSION REPLACEMENT FILE...
 
-  -h, --help    Show this help.
-  -v, --verbose         Print extended information.
-  -d, --dry-run         Don't modify any file.
+ -h, --help              Show this help.
+ -v, --verbose           Print extended information.
+ -d, --dry-run           Don't modify any file.
+ -C, --ignore-collisions Force rename on collision conflicts.
 ```
