@@ -7,7 +7,7 @@
  * @return { ([accepted[],rejected[]]) }
  */
 Array.prototype.partition = Array.prototype.partition || function partition(predicate, thisArg = null) {
-        var truePart  = [],
+        let truePart  = [],
             falsePart = [];
         this.forEach((val, i, col) => {
             ((predicate.call(thisArg, val, i, col)) ? truePart : falsePart).push(val);
@@ -19,9 +19,9 @@ Array.prototype.partition = Array.prototype.partition || function partition(pred
  * @param { ([accepted[],rejected[]]) => {} } completionCb
  */
 Array.prototype.partitionAsync = Array.prototype.partitionAsync || function partitionAsync(predicateAsync, completionCb) {
-        var self = this.slice();
-        var results = Array(this.length);
-        var processed = 0;
+        const self = this.slice();
+        let results = Array(this.length);
+        let processed = 0;
 
         self.forEach((val, i) => {
             predicateAsync(val, valid => {
@@ -44,11 +44,11 @@ Array.prototype.partitionAsync = Array.prototype.partitionAsync || function part
  * @param { (val, cb) => { cb(result) } } transformAsync
  */
 Array.prototype.mapAsync = Array.prototype.mapAsync || function mapAsync(transformAsync, completionCb) {
-        var self = this.slice();
-        var results = Array(this.length);
-        var processed = 0;
+        const self = this.slice();
+        let results = Array(this.length);
+        let processed = 0;
 
-        self.forEach((val, i, col) => {
+        self.forEach((val, i) => {
             transformAsync(val, result => {
                 results[i] = result;
                 processed++;
@@ -144,6 +144,29 @@ const { dirname, basename } = require('path');
 
 const [, scriptPath, ...args] = process.argv
 
+function generateUsage({ progDescription, optionDefinitions }) {
+    function generateOptionHelp({ short, long, description = '' }) {
+        let switches = [];
+        if (short) { switches.push(`-${short}`); }
+        if (long) { switches.push(`--${long}`); }
+        return { switches: switches.join(', '), description: description};
+    }
+    let optInfos = Object.values(optionDefinitions).map(generateOptionHelp);
+    /* Generate padding */
+    const maxOptSwitchesLength = optInfos.map(({switches}) => switches.length)
+                                         .reduce((p, c) => p > c ? p : c, 0);
+    optInfos = optInfos.map(({ switches, description }) => ({
+      switches: switches + Array(
+            Math.max(0, maxOptSwitchesLength - switches.length + 1)).join(" "),
+      description
+    }));
+    const optionDescriptions = optInfos.map(({ switches, description }) =>
+                                           `${switches} ${description}`)
+                                       .join('\n');
+    return `${progDescription}\n${optionDescriptions}`;
+}
+
+
 const OPTION_DEFINITIONS = {
     help: {
         short: 'h', long: 'help', defaultValue: false,
@@ -162,23 +185,16 @@ const OPTION_DEFINITIONS = {
             opts.verbose = true
         }
     },
+    ignoreCollisions: {
+      short: 'C', long: 'ignore-collisions', defaultValue: false,
+      description: "Force rename on collision conflicts."
+    },
 };
 
-const USAGE = (() => {
-    function generateOptionHelp(opt) {
-        var help = '  ';
-        if (opt.short) { help += `-${opt.short}` }
-        if (opt.long) { help += `${opt.long ? ', ' : ''}--${opt.long} `}
-        if (opt.description) { help += `\t${opt.description}` }
-        return `${help}\n`;
-    }
-    const description = `${basename(scriptPath)} [OPTION]... EXPRESSION REPLACEMENT FILE\n`;
-    const optionDescriptions = Object.values(OPTION_DEFINITIONS)
-        .reduce((p, opt) => `${p ? `${p}` : ''}${generateOptionHelp(opt)}`,
-            null);
-    return `${description}\n${optionDescriptions}`;
-})();
-
+const USAGE = generateUsage({
+  progDescription: `${basename(scriptPath)} [OPTION]... EXPRESSION REPLACEMENT FILE\n`,
+  optionDefinitions: OPTION_DEFINITIONS
+});
 
 const [[expression, replacement, ...files], options] = args.partition(arg => arg[0] !== '-');
 
