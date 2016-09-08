@@ -378,9 +378,7 @@ function main() {
     files.partitionAsync(validFile, ([files, invalidFiles]) => {
         checkInvalidFiles(invalidFiles);
         getRenameOps(files, expression, replacement, (renameOps) => {
-            execRenameOps(renameOps, (renameOps) => {
-                finalization(renameOps);
-            });
+            execRenameOps(renameOps, finalization);
         });
     });
 }

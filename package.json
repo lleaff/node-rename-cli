@@ -18,5 +18,8 @@
   "bugs": {
     "url": "https://github.com/lleaff/node-rename-cli/issues"
   },
-  "homepage": "https://github.com/lleaff/node-rename-cli#readme"
+  "homepage": "https://github.com/lleaff/node-rename-cli#readme",
+  "engines" : {
+    "node" : ">=6"
+  }
 }
