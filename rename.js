@@ -1,17 +1,16 @@
 #!/usr/bin/env node
 
-/* =Utility functions
+/* =Generic utilities
  *------------------------------------------------------------*/
 
 /**
  * @return { ([accepted[],rejected[]]) }
  */
-Array.prototype.partition = Array.prototype.partition || function partition(predicate, thisArg) {
-        const self = (thisArg || this);
+Array.prototype.partition = Array.prototype.partition || function partition(predicate, thisArg = null) {
         var truePart  = [],
             falsePart = [];
-        self.forEach((val, i, col) => {
-            ((predicate(val, i, col)) ? truePart : falsePart).push(val);
+        this.forEach((val, i, col) => {
+            ((predicate.call(thisArg, val, i, col)) ? truePart : falsePart).push(val);
         });
         return [truePart, falsePart];
     };
@@ -41,7 +40,7 @@ Array.prototype.partitionAsync = Array.prototype.partitionAsync || function part
     };
 
 /**
- * 
+ *
  * @param { (val, cb) => { cb(result) } } transformAsync
  */
 Array.prototype.mapAsync = Array.prototype.mapAsync || function mapAsync(transformAsync, completionCb) {
@@ -64,17 +63,77 @@ Array.prototype.mapAsync = Array.prototype.mapAsync || function mapAsync(transfo
         }
     };
 
-Object.prototype.find = Object.prototype.find || function find(predicate, thisArg) {
-        const self = thisArg || this;
-        const keys = Object.keys(self);
-        return keys.find(key => predicate(self[key], key, self));
+Array.prototype.occurences = Array.prototype.occurences || function occurences() {
+        let occ = new Map(this.map(val => [val, 0]));
+        this.forEach(val => {
+            occ.set(val, occ.get(val) + 1);
+        });
+        return occ;
     };
 
+Object.entries = Object.entries || function entries(obj) {
+        return Object.keys(obj).map(key => [key, obj[key]]);
+    };
 
 Object.values = Object.values || function values(object) {
         const keys = Object.keys(object);
         return keys.map(key => object[key]);
     };
+
+
+Object.prototype.forEach = Object.prototype.forEach || function forEach(callback, thisArg = null) {
+        Object.entries(this).forEach((
+            (entry, i) => callback.call(thisArg, entry, i, this)).bind(this));
+    };
+
+Object.filter = Object.filter || function filter(obj, predicate, thisArg = null) {
+        let newObj = Object.assign({}, obj);
+        Object.entries(this).forEach(((entry, i) => {
+            if (!predicate.call(thisArg, entry, i, obj)) {
+                const key = entry[0];
+                delete newObj[key];
+            }
+        }));
+        return newObj;
+    };
+
+Object.prototype.map = Object.prototype.map || function map(callback, thisArg = null) {
+        let newObj = {};
+        this.forEach((entry, i, obj) => {
+            const [newKey, newVal] = callback.call(thisArg, entry, i, obj);
+            newObj[newKey] = newVal;
+        });
+        return newObj;
+    };
+
+Object.prototype.find = Object.prototype.find || function find(predicate, thisArg = null) {
+        const self = this;
+        const keys = Object.keys(this);
+        return keys.find(key => predicate.call(thisArg, [key, self[key]], key, self)) ;
+    };
+
+Map.prototype.filter = Map.prototype.filter || function filter(predicate, thisArg = null) {
+        const self = this;
+        return new Map([...this.entries()].filter((entry, i) => predicate(entry, i, self), thisArg));
+    };
+
+
+/**
+ * Allow passing in flags in a RegExp string
+ * @example
+ * parseRegExp("/hello/gi")
+ * //=> /hello/gi
+ * new RegExp("/hello/gi")
+ * //=> /\/hello\/gi/
+ * @param {string} expr
+ */
+function parseRegExp(expr) {
+    const skeleton = /^\/(.*)\/([A-Za-z]*)$/;
+    let [, body, flags] = expr.match(skeleton) || [];
+    return body ? new RegExp(body.replace(/\\\//g, '/'), flags) :
+                  new RegExp(expr);
+}
+
 
 /* =CLI arguments parsing
  *------------------------------------------------------------*/
@@ -113,46 +172,53 @@ const USAGE = (() => {
         if (opt.description) { help += `\t${opt.description}` }
         return `${help}\n`;
     }
-    const description = `${basename(scriptPath)} [OPTION]... EXPRESSION REPLACEMENT FILE...\n`;
+    const description = `${basename(scriptPath)} [OPTION]... EXPRESSION REPLACEMENT FILE\n`;
     const optionDescriptions = Object.values(OPTION_DEFINITIONS)
-                                                .reduce((p, opt) => `${p ? `${p}` : ''}${generateOptionHelp(opt)}`,
-                                                        null);
+        .reduce((p, opt) => `${p ? `${p}` : ''}${generateOptionHelp(opt)}`,
+            null);
     return `${description}\n${optionDescriptions}`;
 })();
 
 
 const [[expression, replacement, ...files], options] = args.partition(arg => arg[0] !== '-');
 
+
+function activateOption(options, defs, option) {
+    options[option] = true;
+    if (defs[option].callback) {
+        defs[option].callback(options);
+    }
+}
+
+
 function parseOptions(defs, args) {
     var options = {};
-    
+
     args.forEach(arg => {
         if (/^--/.test(arg)) { /* long option */
             const long = arg.replace(/^--/, '');
-            const option = defs.find(opt => opt.long === long);
-            activateOption(option);
+            const option = defs.find(([opt, def]) => (def.long === long));
+            if (!option) {
+                logfailure(`No such option: --${long}`);
+                process.exit(1);
+            }
+            activateOption(options, defs, option);
         } else { /* short options */
-            const shorts = arg.replace(/-/, '');
-            shorts.split('').forEach(short => {
-                const option = defs.find(opt => opt.short === short);
-                activateOption(option);
+            const shorts = arg.replace(/-/, '').split('');
+            shorts.forEach(short => {
+                const option = defs.find(([opt, def]) => (def.short === short));
+                if (!option) {
+                    logfailure(`No such option: -${short}`);
+                    process.exit(1);
+                }
+                activateOption(options, defs, option);
             });
         }
     })
-    
-    function activateOption(option) {
-        if (!option) {
-            return;
-        }
-        options[option] = true;
-        if (defs[option].callback) {
-            defs[option].callback(options);
-        }
-    }
-    
-    Object.keys(defs).forEach(opt => {
+
+    defs.forEach(([opt, def]) => {
         if (options[opt] === undefined) {
-            options[opt] = defs[opt].defaultValue;
+            options[opt] = def.defaultValue;
         }
     });
     return options;
@@ -167,7 +233,7 @@ if (OPTS.help) {
     console.error(USAGE);
     process.exit(0);
 }
-if (files === undefined) {
+if (files.length === 0) {
     console.error(USAGE);
     process.exit(1);
 }
@@ -175,7 +241,10 @@ if (files === undefined) {
 
 const fsRename = !OPTS.dryRun ? fs.rename : (_old, _new, cb) => { cb(); };
 
-const regexpExpression = new RegExp(expression);
+const regexp = parseRegExp(expression);
+
+/* =Specialized utilities
+ *------------------------------------------------------------*/
 
 function log() {
     if (OPTS.verbose) {
@@ -189,7 +258,15 @@ function logfailure() {
     failed = true;
 }
 
-/* =
+function logCollisions(collisions) {
+    logfailure(`Colliding files: ${
+        collisions.map(collision =>
+            `\n${collision.sources.map(c => `   "${c}"`).join(',\n')}\n=> "${collision.destination}"\n`
+        ).join('\n')
+        }`);
+}
+
+/* =Main
  *------------------------------------------------------------*/
 
 /**
@@ -210,8 +287,31 @@ function getRenamedPath(expression, replacement, filePath) {
     return `${dirPart}${newName}`;
 }
 
-function renameWith(nameTransformFn, filePath, callback) {
-    const newPath = nameTransformFn(filePath);
+function getRenameOp(expression, replacement, file) {
+    return [file, getRenamedPath(expression, replacement, file)];
+}
+
+/**
+ *
+ * @param {[orig,dest]} renameOps
+ * @return collisions or null
+ */
+function checkNameCollisions(renameOps) {
+    const destinations = renameOps.map(([orig, dest]) => dest);
+    const duplicates = destinations.occurences()
+                                   .filter(([, occurences]) => occurences > 1);
+    const collisions = [...duplicates.entries()].map(([dest, ]) =>
+                                        renameOps.filter(([orig, d]) => dest === d));
+    if (collisions.length === 0) {
+        return null;
+    }
+    return collisions.map(colliding => colliding.reduce(
+        (p, [orig, dest]) => ({ sources: p.sources.concat(orig), destination: dest }),
+        { sources: [], destination: '' }
+    ));
+}
+
+function execRenameOp([filePath, newPath], callback) {
     if (newPath !== null) {
         fsRename(filePath, newPath, (err) => {
             if (err) {
@@ -225,30 +325,44 @@ function renameWith(nameTransformFn, filePath, callback) {
     return [filePath, null];
 }
 
-function rename(expr, repl, filePath, callback) {
-    return renameWith(p => getRenamedPath(expr, repl, p),
-                      filePath,
-                      callback);
+function checkInvalidFiles(invalidFiles) {
+    if (invalidFiles.length !== 0) {
+        invalidFiles.forEach(name => { logfailure(`INVALID FILE "${name}".`) });
+        process.exit(1);
+    }
+}
+
+function getRenameOps(files, match, subst, completion) {
+    const renameOps = files.map(file => getRenameOp(regexp, replacement, file));
+    const effectiveRenameOps = renameOps.filter(([oldName, newName]) => newName !== null);
+    const collisions = checkNameCollisions(effectiveRenameOps);
+    if (collisions) {
+        logCollisions(collisions);
+        process.exit(1);
+    }
+    completion(effectiveRenameOps);
+}
+
+function execRenameOps(renameOps, completion) {
+    renameOps.mapAsync(execRenameOp, completion);
+}
+
+function finalization(renameOps) {
+    renameOps.forEach(([oldName, newName]) => {
+        log(`"${oldName}" => "${newName}"`);
+    });
+    log(`Renamed ${renameOps.length} out of ${files.length} files given.`);
+    process.exit(failed ? 1 : 0)
 }
 
 function main() {
     files.partitionAsync(validFile, ([files, invalidFiles]) => {
-        if (invalidFiles.length !== 0) {
-            invalidFiles.forEach(name => { logfailure(`INVALID FILE "${name}".`) });
-            process.exit(1);
-        }
-        files.mapAsync(
-            (file, cb) => rename(regexpExpression, replacement, file, cb),
-            completion);
-    })
-
-    function completion(operations) {
-        const renameOps = operations.filter(([oldName, newName]) => newName);
-        renameOps.forEach(([oldName, newName]) => {
-            log(`"${oldName}" => "${newName}"`);
+        checkInvalidFiles(invalidFiles);
+        getRenameOps(files, expression, replacement, (renameOps) => {
+            execRenameOps(renameOps, (renameOps) => {
+                finalization(renameOps);
+            });
         });
-        log(`Renamed ${renameOps.length} out of ${files.length} files given.`);
-        process.exit(failed ? 1 : 0)
-    }
+    });
 }
 main();
