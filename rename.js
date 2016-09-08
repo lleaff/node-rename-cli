@@ -343,18 +343,21 @@ function execRenameOp([filePath, newPath], callback) {
 
 function checkInvalidFiles(invalidFiles) {
     if (invalidFiles.length !== 0) {
-        invalidFiles.forEach(name => { logfailure(`INVALID FILE "${name}".`) });
+        invalidFiles.forEach(name => { logfailure(`INVALID FILE "${name}".`); });
         process.exit(1);
     }
 }
 
 function getRenameOps(files, match, subst, completion) {
     const renameOps = files.map(file => getRenameOp(regexp, replacement, file));
-    const effectiveRenameOps = renameOps.filter(([oldName, newName]) => newName !== null);
-    const collisions = checkNameCollisions(effectiveRenameOps);
-    if (collisions) {
+    const effectiveRenameOps = renameOps.filter(
+                                  ([_oldName, newName]) => newName !== null);
+    if (!OPTS.ignoreCollisions) {
+      const collisions = checkNameCollisions(effectiveRenameOps);
+      if (collisions) {
         logCollisions(collisions);
         process.exit(1);
+      }
     }
     completion(effectiveRenameOps);
 }
@@ -368,7 +371,7 @@ function finalization(renameOps) {
         log(`"${oldName}" => "${newName}"`);
     });
     log(`Renamed ${renameOps.length} out of ${files.length} files given.`);
-    process.exit(failed ? 1 : 0)
+    process.exit(failed ? 1 : 0);
 }
 
 function main() {
