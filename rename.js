@@ -8,6 +8,15 @@ function array_insert(array, i, item) {
 }
 
 /**
+ * @example
+ * [{ color: 'red', weight: 8 }, { color: 'blue', weight: 9 }].pluck('color')
+ * //=> [ 'red', 'blue' ]
+ */
+Array.prototype.pluck = Array.prototype.pluck || function pluck(propName) {
+        return this.map(obj => obj[propName]);
+    };
+
+/**
  * @return { ([accepted[],rejected[]]) }
  */
 Array.prototype.partition = Array.prototype.partition || function partition(predicate, thisArg = null) {
@@ -293,7 +302,7 @@ if (files.length === 0) {
 }
 
 
-const fsRename = !OPTS.dryRun ? fs.rename : (_old, _new, cb) => { cb(); };
+const fsPRename = !OPTS.dryRun ? fsP.rename : (_old, _new) => new Promise((resolve) => resolve());
 
 const regexp = parseRegExp(expression);
 
@@ -323,11 +332,17 @@ function logCollisions(collisions) {
 /* =Main
  *------------------------------------------------------------*/
 
+function validFile(file) {
+    return fsP.stat(file).then((stat) => Promise.resolve(stat),
+                               (err) => Promise.resolve(false));
+}
+
 /**
- * @param { (bool, Stats) => {} } callback
+ * @param {boolean} valid
+ * @returns {Promise.<{string, boolean}>}}
  */
-function validFile(file, callback) {
-    fs.stat(file, (err, stats) => { callback(!err, stats) });
+function validateFile(file) {
+    return validFile(file).then((validity) => Promise.resolve({ name: file, validity }));
 }
 
 function getRenamedPath(expression, replacement, filePath) {
@@ -365,28 +380,24 @@ function checkNameCollisions(renameOps) {
     ));
 }
 
-function execRenameOp([filePath, newPath], callback) {
+function execRenameOp([filePath, newPath]) {
     if (newPath !== null) {
-        fsRename(filePath, newPath, (err) => {
-            if (err) {
-                logfailure(`FAILED "${filePath}" => "${newPath}":`, err);
-            }
-            callback && callback([filePath, newPath]);
-        });
-        return [filePath, newPath];
+        return fsPRename(filePath, newPath)
+                .then(() => Promise.resolve([filePath, newPath]),
+                      (err) => Promise.reject(logfailure(`FAILED "${filePath}" => "${newPath}":`, err)));
     }
-    callback && callback([filePath, null]);
-    return [filePath, null];
+    return Promise.resolve([filePath, null]);
 }
 
 function checkInvalidFiles(invalidFiles) {
     if (invalidFiles.length !== 0) {
         invalidFiles.forEach(name => { logfailure(`INVALID FILE "${name}".`); });
-        process.exit(1);
+        return false;
     }
+    return true;
 }
 
-function getRenameOps(files, match, subst, completion) {
+function getRenameOps(files, match, subst) {
     const renameOps = files.map(file => getRenameOp(regexp, replacement, file));
     const effectiveRenameOps = renameOps.filter(
                                   ([_oldName, newName]) => newName !== null);
@@ -397,11 +408,16 @@ function getRenameOps(files, match, subst, completion) {
         process.exit(1);
       }
     }
-    completion(effectiveRenameOps);
+    return effectiveRenameOps;
 }
 
-function execRenameOps(renameOps, completion) {
-    renameOps.mapAsync(execRenameOp, completion);
+function checkDestinationAvailability([source, destination]) {
+    return validateFile(destination).then(({name, validity }) =>
+        Promise[validity ? 'reject' : 'resolve']([source, destination]));
+}
+
+function logInvalidDestination([source, destination]) {
+    logfailure(`"${source}" would be renamed as "${destination}" which already exists.`);
 }
 
 function finalization(renameOps) {
@@ -413,11 +429,19 @@ function finalization(renameOps) {
 }
 
 function main() {
-    files.partitionAsync(validFile, ([files, invalidFiles]) => {
-        checkInvalidFiles(invalidFiles);
-        getRenameOps(files, expression, replacement, (renameOps) => {
-            execRenameOps(renameOps, finalization);
-        });
-    });
+    Promise.all(files.map(validateFile))
+        .then(files => {
+            const [validFiles, invalidFiles] = files.partition(({name, validity}) => !!validity)
+                                                    .map(fls => fls.pluck('name'));
+            return !checkInvalidFiles(invalidFiles) ?
+                Promise.reject() :
+                Promise.resolve(getRenameOps(validFiles, expression, replacement));
+        })
+        .then(files => Promise.all(files.map(checkDestinationAvailability)))
+        .catch((err) => logInvalidDestination(err))
+        .then(([validRenameOps, invalidRenameOps]) => {
+            check()
+        })
+        .then(finalization);
 }
 main();
