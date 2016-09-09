@@ -3,6 +3,10 @@
 /* =Generic utilities
  *------------------------------------------------------------*/
 
+function array_insert(array, i, item) {
+    return [...array.slice(0, i), item, ...array.slice(i)];
+}
+
 /**
  * @return { ([accepted[],rejected[]]) }
  */
@@ -134,11 +138,44 @@ function parseRegExp(expr) {
                   new RegExp(expr);
 }
 
+/* =Make Node functions return promises
+ *------------------------------------------------------------*/
+
+/**
+ * Return a new function that takes
+ * @param {function(..., cb)} fn - A function taking a callback as last argument,
+ *      and to which it will pass eventual errors as first argument.
+ * @param {int} [callbackPos] - Manually specify callback argument position, default to end
+ */
+function promisify(fn, callbackPos) {
+    const pos = callbackPos === undefined ? fn.length - 1 :callbackPos;
+
+    return function promisified() {
+        const promisifiedArgs = Array.prototype.slice.call(arguments);
+        return new Promise(function (resolve, reject) {
+            function promisifiedCallback(err, ...resolveArgs) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve.apply(this, resolveArgs);
+                }
+            }
+            const args = array_insert(promisifiedArgs, pos, promisifiedCallback);
+            fn.apply(this, args);
+        });
+    };
+}
+
+const fs = require('fs');
+
+const fsP = {
+    rename: promisify(fs.rename),
+    stat:   promisify(fs.stat)
+};
+
 
 /* =CLI arguments parsing
  *------------------------------------------------------------*/
-
-const fs = require('fs')
 
 const { dirname, basename } = require('path');
 
@@ -148,7 +185,7 @@ function generateUsage({ progDescription, optionDefinitions }) {
     function generateOptionHelp({ short, long, description = '' }) {
         let switches = [];
         if (short) { switches.push(` -${short}`); }
-        if (long) { switches.push(`--${long}`); }
+        if (long)  { switches.push(`--${long}`); }
         return { switches: switches.join(', '), description: description};
     }
     let optInfos = Object.values(optionDefinitions).map(generateOptionHelp);
@@ -156,10 +193,11 @@ function generateUsage({ progDescription, optionDefinitions }) {
     const maxOptSwitchesLength = optInfos.map(({switches}) => switches.length)
                                          .reduce((p, c) => p > c ? p : c, 0);
     optInfos = optInfos.map(({ switches, description }) => ({
-      switches: switches + Array(
-            Math.max(0, maxOptSwitchesLength - switches.length + 1)).join(" "),
-      description
-    }));
+                switches: switches + Array(
+                        Math.max(0, maxOptSwitchesLength - switches.length + 1) /* padding length */
+                    ).join(" "),
+                description
+            }));
     const optionDescriptions = optInfos.map(({ switches, description }) =>
                                            `${switches} ${description}`)
                                        .join('\n');
