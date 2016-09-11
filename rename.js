@@ -3,6 +3,13 @@
 /* =Generic utilities
  *------------------------------------------------------------*/
 
+function noop() {
+}
+
+function identity(a) {
+    return a;
+}
+
 function array_insert(array, i, item) {
     return [...array.slice(0, i), item, ...array.slice(i)];
 }
@@ -14,6 +21,11 @@ function array_insert(array, i, item) {
  */
 Array.prototype.pluck = Array.prototype.pluck || function pluck(propName) {
         return this.map(obj => obj[propName]);
+    };
+
+
+Array.prototype.has = Array.prototype.has || function has(item) {
+        return this.indexOf(item) !== -1;
     };
 
 /**
@@ -141,8 +153,8 @@ Map.prototype.filter = Map.prototype.filter || function filter(predicate, thisAr
  * @param {string} expr
  */
 function parseRegExp(expr) {
-    const skeleton = /^\/(.*)\/([A-Za-z]*)$/;
-    let [, body, flags] = expr.match(skeleton) || [];
+    const skeleton = /^([\/#])(.*)(\1)([A-Za-z]*)$/;
+    let [,, body,, flags] = expr.match(skeleton) || [];
     return body ? new RegExp(body.replace(/\\\//g, '/'), flags) :
                   new RegExp(expr);
 }
@@ -223,7 +235,7 @@ const OPTION_DEFINITIONS = {
         }
     },
     verbose: {
-        short: 'v', long: 'verbose', defaultValue: true,
+        short: 'v', long: 'verbose', defaultValue: false,
         description: "Print extended information."
     },
     dryRun: {
@@ -235,6 +247,10 @@ const OPTION_DEFINITIONS = {
     ignoreCollisions: {
       short: 'C', long: 'ignore-collisions', defaultValue: false,
       description: "Force rename on collision conflicts."
+    },
+    skipProblematic: {
+        short: 'S', long: 'skip-problematic', defaultValue: false,
+        description: "Continue renaming non-problematic files instead of stopping on errors."
     },
 };
 
@@ -309,28 +325,59 @@ const regexp = parseRegExp(expression);
 /* =Specialized utilities
  *------------------------------------------------------------*/
 
-function log() {
-    if (OPTS.verbose) {
+const COLORS = {
+    reset:      "\x1b[0m",
+    bright:     "\x1b[1m",
+    dim:        "\x1b[2m",
+    underscore: "\x1b[4m",
+    blink:      "\x1b[5m",
+    reverse:    "\x1b[7m",
+    hidden:     "\x1b[8m",
+    fgBlack:    "\x1b[30m",
+    fgRed:      "\x1b[31m",
+    fgGreen:    "\x1b[32m",
+    fgYellow:   "\x1b[33m",
+    fgBlue:     "\x1b[34m",
+    fgMagenta:  "\x1b[35m",
+    fgCyan:     "\x1b[36m",
+    fgWhite:    "\x1b[37m",
+    bgBlack:    "\x1b[40m",
+    bgRed:      "\x1b[41m",
+    bgGreen:    "\x1b[42m",
+    bgYellow:   "\x1b[43m",
+    bgBlue:     "\x1b[44m",
+    bgMagenta:  "\x1b[45m",
+    bgCyan:     "\x1b[46m",
+    bgWhite:    "\x1b[47m",
+}.map(process.stdout.isTTY ? identity : ([name, code]) => [name, ''])
+
+const log = OPTS.verbose ? function log() {
         console.log.call(console, ...arguments);
-    }
-}
+} : noop;
 
 var failed = false;
 function logfailure() {
-    console.error.call(console, 'ERROR: ', ...arguments);
+    console.error.apply(console, [`${COLORS.fgRed}ERROR: `, ...arguments, ...(COLORS.reset ? [COLORS.reset] : [])]);
     failed = true;
 }
 
 function logCollisions(collisions) {
-    logfailure(`Colliding files: ${
+    (!OPTS.skipProblematic ? logfailure : log)(`Colliding files: ${
         collisions.map(collision =>
             `\n${collision.sources.map(c => `   "${c}"`).join(',\n')}\n=> "${collision.destination}"\n`
         ).join('\n')
         }`);
 }
 
+const logArguments = OPTS.verbose ? function logArguments({ regexp, replacement }) {
+    log(`Expression: "${regexp}"`);
+    log(`Replacement: "${replacement}"`)
+} : noop;
+
 /* =Main
  *------------------------------------------------------------*/
+
+
 
 function validFile(file) {
     return fsP.stat(file).then((stat) => Promise.resolve(stat),
@@ -380,6 +427,23 @@ function checkNameCollisions(renameOps) {
     ));
 }
 
+function handleCollisions(renameOps) {
+    if (OPTS.ignoreCollisions) {
+        return renameOps;
+    }
+    const collisions = checkNameCollisions(renameOps);
+    if (collisions) {
+        logCollisions(collisions);
+        if (OPTS.skipProblematic) {
+            const affectedSources = collisions.reduce((p, { sources }) => p.concat(sources), []);
+            return renameOps.filter(([oldName]) => !affectedSources.has(oldName));
+        } else {
+            return false;
+        }
+    }
+    return renameOps;
+}
+
 function execRenameOp([filePath, newPath]) {
     if (newPath !== null) {
         return fsPRename(filePath, newPath)
@@ -398,17 +462,10 @@ function checkInvalidFiles(invalidFiles) {
 }
 
 function getRenameOps(files, match, subst) {
-    const renameOps = files.map(file => getRenameOp(regexp, replacement, file));
-    const effectiveRenameOps = renameOps.filter(
-                                  ([_oldName, newName]) => newName !== null);
-    if (!OPTS.ignoreCollisions) {
-      const collisions = checkNameCollisions(effectiveRenameOps);
-      if (collisions) {
-        logCollisions(collisions);
-        process.exit(1);
-      }
-    }
-    return effectiveRenameOps;
+    const renameOps = files.map(file => getRenameOp(match, subst, file));
+    let effectiveRenameOps = renameOps.filter(
+                                  ([oldName, newName]) => newName !== null && oldName !== newName);
+    return handleCollisions(effectiveRenameOps);
 }
 
 function checkDestinationAvailability([source, destination]) {
@@ -429,19 +486,18 @@ function finalization(renameOps) {
 }
 
 function main() {
+    logArguments({ regexp, replacement });
     Promise.all(files.map(validateFile))
         .then(files => {
             const [validFiles, invalidFiles] = files.partition(({name, validity}) => !!validity)
                                                     .map(fls => fls.pluck('name'));
             return !checkInvalidFiles(invalidFiles) ?
                 Promise.reject() :
-                Promise.resolve(getRenameOps(validFiles, expression, replacement));
+                Promise.resolve(getRenameOps(validFiles, regexp, replacement));
         })
         .then(files => Promise.all(files.map(checkDestinationAvailability)))
         .catch((err) => logInvalidDestination(err))
-        .then(([validRenameOps, invalidRenameOps]) => {
-            check()
-        })
+        .then(renameOps => Promise.all(renameOps.map(execRenameOp)))
         .then(finalization);
 }
 main();
