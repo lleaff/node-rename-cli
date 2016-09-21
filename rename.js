@@ -200,7 +200,7 @@ const fsP = {
 
 const { dirname, basename } = require('path');
 
-const [, scriptPath, ...args] = process.argv
+const [, scriptPath, ...args] = process.argv;
 
 function generateUsage({ progDescription, optionDefinitions }) {
     function generateOptionHelp({ short, long, description = '' }) {
@@ -293,7 +293,7 @@ function parseOptions(defs, args) {
                 activateOption(options, defs, option);
             });
         }
-    })
+    });
 
     defs.forEach(([opt, def]) => {
         if (options[opt] === undefined) {
@@ -349,7 +349,7 @@ const COLORS = {
     bgMagenta:  "\x1b[45m",
     bgCyan:     "\x1b[46m",
     bgWhite:    "\x1b[47m",
-}.map(process.stdout.isTTY ? identity : ([name, code]) => [name, ''])
+}.map(process.stdout.isTTY ? identity : ([name, code]) => [name, '']);
 
 const log = OPTS.verbose ? function log() {
         console.log.call(console, ...arguments);
