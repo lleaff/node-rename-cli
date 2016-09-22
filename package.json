@@ -4,6 +4,7 @@
   "description": "Command-line renaming utility using JavaScript RegExps",
   "main": "rename.js",
   "scripts": {
+    "start": "node build.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "generate_help": "echo '```' > README.md && ./rename.js --help 2>> README.md && echo '```' >> README.md"
   },
@@ -20,7 +21,15 @@
     "url": "https://github.com/lleaff/node-rename-cli/issues"
   },
   "homepage": "https://github.com/lleaff/node-rename-cli#readme",
-  "engines" : {
-    "node" : ">=6"
+  "engines": {
+    "node": ">=6"
+  },
+  "devDependencies": {
+    "babel-core": "^6.14.0",
+    "babel-loader": "^6.2.5",
+    "babel-plugin-transform-es2015-destructuring": "^6.9.0",
+    "babel-plugin-transform-object-rest-spread": "^6.8.0",
+    "babel-preset-es2015": "^6.14.0",
+    "webpack": "^2.1.0-beta.25"
   }
 }
