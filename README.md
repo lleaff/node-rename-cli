@@ -4,7 +4,7 @@ A safe command-line renaming utility using JavaScript regular expressions.
 
 Prevents renaming collisions and overwriting existing files.
 
-No dependencies outside of Node.js [>=v6.5](http://node.green/).
+No runtime dependencies outside of Node.js [>=v6.5](http://node.green/).
 
 
 
