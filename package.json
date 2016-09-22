@@ -4,7 +4,7 @@
   "description": "Command-line renaming utility using JavaScript RegExps",
   "main": "rename.js",
   "scripts": {
-    "start": "node build.js",
+    "start": "node ./scripts/build.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "generate_help": "echo '```' > README.md && ./rename.js --help 2>> README.md && echo '```' >> README.md"
   },
