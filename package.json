@@ -2,7 +2,11 @@
   "name": "rename-cli",
   "version": "0.0.1",
   "description": "Command-line renaming utility using JavaScript RegExps",
-  "main": "rename.js",
+  "main": "lib/rename-files.js",
+  "bin": {
+    "rename": "./rename.js",
+    "rename.js": "./rename.js"
+  },
   "scripts": {
     "start": "node ./scripts/build.js",
     "test": "echo \"Error: no test specified\" && exit 1",
