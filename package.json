@@ -9,6 +9,8 @@
   },
   "scripts": {
     "start": "node ./scripts/build.js",
+    "clean": "rm ./rename.js",
+    "postinstall": "npm start",
     "test": "echo \"Error: no test specified\" && exit 1",
     "generate_help": "echo '```' > README.md && ./rename.js --help 2>> README.md && echo '```' >> README.md"
   },
