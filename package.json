@@ -1,5 +1,5 @@
 {
-  "name": "rename-cli",
+  "name": "safe-rename-cli",
   "version": "0.1.0",
   "description": "Simple and safe command-line renaming utility using JavaScript RegExps",
   "main": "lib/rename-files.js",
@@ -7,13 +7,16 @@
     "rename": "./rename.js",
     "rename.js": "./rename.js"
   },
+  "files": [
+    "rename.js"
+  ],
   "scripts": {
     "start": "npm run build",
     "build": "node ./scripts/build.js",
     "clean": "rm ./rename.js",
     "postinstall": "npm run build",
     "prepublish": "npm run build",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "echo \"Error: TODO\" && exit 1",
     "generate_help": "echo '```' > README.md && ./rename.js --help 2>> README.md && echo '```' >> README.md"
   },
   "repository": {
