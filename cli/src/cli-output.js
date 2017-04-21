@@ -1,5 +1,5 @@
 import { OPTS } from './main';
-import { identity } from '../lib/generic-utils';
+import { identity } from 'generic-utils';
 
 export const COLORS = {
     reset:      "\x1b[0m",

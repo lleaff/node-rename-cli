@@ -1,6 +1,6 @@
-import { parseRegExp } from './../lib/generic-utils';
+import { parseRegExp } from 'generic-utils';
 import { failed, log, logArguments, logFailure } from './cli-output';
-import renameFiles from './../lib/rename-files';
+import renameFiles from 'rename-files';
 
 
 /* =CLI arguments parsing
@@ -11,10 +11,10 @@ import { basename } from 'path';
 const [, scriptPath, ...args] = process.argv;
 
 function generateUsage({ progDescription, optionDefinitions }) {
-    function generateOptionHelp({ short, long, description = '' }) {
+    function generateOptionHelp({ shrt, lng, description = '' }) {
         let switches = [];
-        if (short) { switches.push(` -${short}`); }
-        if (long)  { switches.push(`--${long}`); }
+        if (shrt) { switches.push(` -${shrt}`); }
+        if (lng)  { switches.push(`--${lng}`); }
         return { switches: switches.join(', '), description: description};
     }
     let optInfos = Object.values(optionDefinitions).map(generateOptionHelp);
@@ -61,20 +61,20 @@ function parseOptions(defs, args) {
     var options = {};
 
     args.forEach(arg => {
-        if (/^--/.test(arg)) { /* long option */
-            const long = arg.replace(/^--/, '');
-            const option = defs.find(([opt, def]) => (def.long === long));
+        if (/^--/.test(arg)) { /* lng option */
+            const lng = arg.replace(/^--/, '');
+            const option = defs.find(([opt, def]) => (def.lng === lng));
             if (!option) {
-                logFailure(`No such option: --${long}`);
+                logFailure(`No such option: --${lng}`);
                 process.exit(1);
             }
             activateOption(options, defs, option);
-        } else { /* short options */
+        } else { /* shrt options */
             const shorts = arg.replace(/-/, '').split('');
-            shorts.forEach(short => {
-                const option = defs.find(([opt, def]) => (def.short === short));
+            shorts.forEach(shrt => {
+                const option = defs.find(([opt, def]) => (def.shrt === shrt));
                 if (!option) {
-                    logFailure(`No such option: -${short}`);
+                    logFailure(`No such option: -${shrt}`);
                     process.exit(1);
                 }
                 activateOption(options, defs, option);

@@ -1,8 +1,8 @@
 {
   "name": "rename-cli",
   "version": "0.1.0",
-  "description": "Simple and safe command-line renaming utility using JavaScript RegExps",
-  "main": "./main.js",
+  "description": "Command-line renaming utility using JavaScript RegExps",
+  "main": "./src/main.js",
   "bin": {
     "rename": "./rename.js",
     "rename.js": "./rename.js"
@@ -12,9 +12,9 @@
     "yarn.lock"
   ],
   "scripts": {
-    "start": "node ./scripts/build.js",
+    "build": "webpack",
     "clean": "rm ./rename.js",
-    "postinstall": "npm start",
+    "postinstall": "npm build",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -22,7 +22,8 @@
     "url": "git+https://github.com/lleaff/node-rename-cli.git"
   },
   "keywords": [
-    "cli"
+    "cli",
+    "BSD"
   ],
   "author": "lleaff",
   "license": "GPL-2.0",
@@ -30,6 +31,12 @@
     "url": "https://github.com/lleaff/node-rename-cli/issues"
   },
   "homepage": "https://github.com/lleaff/node-rename-cli#readme",
-    "lerna": "2.0.0-beta.36"
+  "devDependencies": {
+    "babel-core": "^6.14.0",
+    "babel-loader": "^6.2.5",
+    "babel-plugin-transform-es2015-destructuring": "^6.9.0",
+    "babel-plugin-transform-object-rest-spread": "^6.8.0",
+    "babel-preset-es2015": "^6.14.0",
+    "webpack": "^2.2.1"
   }
 }
