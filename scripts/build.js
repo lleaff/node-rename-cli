@@ -22,7 +22,6 @@ const compiler = webpack(webpackConfig);
 compiler.outputFileSystem = mfs;
 compiler.run((err, _stats) => {
     if (err) { throw err; }
-  console.log('outputFILE:',outputFile);//DEBUG
     let fileContent = mfs.readFileSync(outputFile);
     fileContent = shebang + fileContent;
     const tmpFile = `${outputFile}~`;
