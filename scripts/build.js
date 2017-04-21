@@ -13,7 +13,7 @@ const mfs = new MemoryFS();
 const webpack = require('webpack');
 const webpackConfig = require('../webpack.config.js');
 
-const outputFile = path.join(__dirname, '..', webpackConfig.output.filename)
+const outputFile = path.resolve(__dirname, '..', webpackConfig.output.filename)
                      .toString();
 
 const shebang = '#!/usr/bin/env node\n\n';
@@ -22,6 +22,7 @@ const compiler = webpack(webpackConfig);
 compiler.outputFileSystem = mfs;
 compiler.run((err, _stats) => {
     if (err) { throw err; }
+  console.log('outputFILE:',outputFile);//DEBUG
     let fileContent = mfs.readFileSync(outputFile);
     fileContent = shebang + fileContent;
     const tmpFile = `${outputFile}~`;

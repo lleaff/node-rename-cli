@@ -1,7 +1,7 @@
 {
   "name": "rename-cli",
   "version": "0.0.1",
-  "description": "Command-line renaming utility using JavaScript RegExps",
+  "description": "Simple and safe command-line renaming utility using JavaScript RegExps",
   "main": "lib/rename-files.js",
   "bin": {
     "rename": "./rename.js",
@@ -36,6 +36,6 @@
     "babel-plugin-transform-es2015-destructuring": "^6.9.0",
     "babel-plugin-transform-object-rest-spread": "^6.8.0",
     "babel-preset-es2015": "^6.14.0",
-    "webpack": "^2.1.0-beta.25"
+    "webpack": "^2.4.1"
   }
 }

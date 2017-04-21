@@ -12,8 +12,8 @@ module.exports = {
             {
                 test: /\.js$/,
                 exclude: /node_modules/,
-                loader: 'babel',
-                query: {
+                loader: 'babel-loader',
+                options: {
                     presets: ['es2015'],
                     plugins: ['transform-es2015-destructuring']
                 }
