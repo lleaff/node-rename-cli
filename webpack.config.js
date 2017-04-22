@@ -8,15 +8,11 @@ module.exports = {
         'node_modules'
     ],
     module: {
-        loaders: [
+        rules: [
             {
                 test: /\.js$/,
                 exclude: /node_modules/,
                 loader: 'babel-loader',
-                options: {
-                    presets: ['es2015'],
-                    plugins: ['transform-es2015-destructuring']
-                }
             }
         ]
     }
