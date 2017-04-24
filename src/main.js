@@ -37,7 +37,7 @@ function generateUsage({ progDescription, optionDefinitions }) {
 import OPTION_DEFINITIONS from './OPTION_DEFINITIONS';
 
 const USAGE = generateUsage({
-  progDescription: `${basename(scriptPath)} [OPTION]... EXPRESSION REPLACEMENT FILE...\n`,
+  progDescription: `${basename(scriptPath)} [OPTION]... PATTERN REPLACEMENT FILE...\n`,
   optionDefinitions: OPTION_DEFINITIONS
 });
 

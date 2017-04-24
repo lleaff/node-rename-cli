@@ -2,7 +2,7 @@
 
 A simple and safe command-line renaming utility using JavaScript regular expressions.
 
-Prevents renaming collisions and overwriting existing files. Check for collisions between input files *before* beginning to rename them.
+Prevents renaming collisions and overwriting existing files. Checks for collisions between input files *before* beginning to rename them.
 
 No runtime dependencies outside of Node.js [>=v6.5](http://node.green/).
 
@@ -17,7 +17,7 @@ The binary is aliased to `rename` and `rename.js`.
 ### Usage
 
 ```
- rename.js [OPTION]... EXPRESSION REPLACEMENT FILE...
+ rename.js [OPTION]... PATTERN REPLACEMENT FILE...
 
  -h, --help              Show this help.
  -v, --verbose           Print extended information.
@@ -28,32 +28,46 @@ The binary is aliased to `rename` and `rename.js`.
 
 ### Examples
 
+The syntax is similar to calling [`String#rename`](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String/replace) in JavaScript.
+
 ```sh
 $ ls
-foo.jsx   bar.jsx   bazjsx
+  foo.jsx  bar.jsx  bazjsx
 $ rename '\.jsx' '.js' *
 $ ls
-foo.js bar.js bazjsx
+  foo.js  bar.js  bazjsx
 ```
+
+#### Capture groups and back references:
 
 ```sh
 $ ls
-foobar   fooBAZbar   fooQUXbar
-$ rename '([A-Z]+)bar$' 'bar-$1' *
+  foobar  fooBAZbar  fooQUXbar
+$ rename '([A-Z]+)bar' 'bar-$1' *
 $ ls
-foobar  foobar-BAZ  foobar-QUX
+  foobar  foobar-BAZ  foobar-QUX
 ```
+
+#### Problematic renaming operation:
 
 ```sh
 $ ls
-foo-10  foo-11  foo-9
+  foo-10  foo-11  foo-9
 $ rename 'foo-(.).*' '$1-foo.log' *
-ERROR:  Colliding files:
-   "foo-10.txt",
-   "foo-11.txt"
-=> "1-foo.log"
+  ERROR:  Colliding files:
+     "foo-10.txt",
+     "foo-11.txt"
+  => "1-foo.log"
 $ ls
-foo-10  foo-11  foo-9
+  foo-10  foo-11  foo-9
+```
+
+Here, we can either run `rename` with `-S` and then rename the problematic files manually, or fix the regular expression so it doesn't produce any collision, e.g.:
+
+```sh
+$ rename 'foo-([0-9]+).*' '$1-foo.log' *
+$ ls
+  10-foo.log  11-foo.log  9-foo.log
 ```
 
 ### Notes
