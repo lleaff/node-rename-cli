@@ -2,9 +2,9 @@
 
 A simple and safe command-line renaming utility using JavaScript regular expressions.
 
-Prevents renaming collisions and overwriting existing files. Checks for collisions between input files *before* beginning to rename them.
+Prevents renaming collisions and overwriting existing files. Checks for collisions between input files *before* beginning to rename them, so you don't end up with a dirty directory.
 
-No runtime dependencies outside of Node.js [>=v6.5](http://node.green/).
+No runtime dependencies outside of Node.js [>=v8](http://node.green/).
 
 ### Installation
 
@@ -12,7 +12,7 @@ No runtime dependencies outside of Node.js [>=v6.5](http://node.green/).
 $ npm install -g safe-rename-cli
 ```
 
-The binary is aliased to `rename` and `rename.js`.
+The executable is aliased to `rename` and `rename.js`.
 
 ### Usage
 
@@ -33,7 +33,7 @@ The syntax is similar to calling [`String#rename`](https://developer.mozilla.org
 ```sh
 $ ls
   foo.jsx  bar.jsx  bazjsx
-$ rename '\.jsx' '.js' *
+$ rename '\.jsx$' '.js' *
 $ ls
   foo.js  bar.js  bazjsx
 ```
@@ -52,20 +52,21 @@ $ ls
 
 ```sh
 $ ls
-  foo-10  foo-11  foo-9
-$ rename 'foo-(.).*' '$1-foo.log' *
+  foo-10.txt  foo-11.txt  foo-9.txt
+$ rename 'foo-(.)\.*' '$1-foo.log' *
   ERROR:  Colliding files:
      "foo-10.txt",
      "foo-11.txt"
   => "1-foo.log"
 $ ls
-  foo-10  foo-11  foo-9
+  foo-10.txt  foo-11.txt  foo-9.txt
+# Nothing changed, foo-9.txt wasn't touched either.
 ```
 
-Here, we can either run `rename` with `-S` and then rename the problematic files manually, or fix the regular expression so it doesn't produce any collision, e.g.:
+Here, we can either run `rename` with `-S` to skip the conflicting files and deal with them manually later, or we can fix the regular expression so it doesn't produce any collision, e.g.:
 
 ```sh
-$ rename 'foo-([0-9]+).*' '$1-foo.log' *
+$ rename 'foo-([0-9]*)\.*' '$1-foo.log' *
 $ ls
   10-foo.log  11-foo.log  9-foo.log
 ```
