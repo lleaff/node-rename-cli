@@ -1,6 +1,6 @@
 {
   "name": "safe-rename-cli",
-  "version": "0.1.22",
+  "version": "0.2.0",
   "description": "Simple and safe command-line renaming utility using JavaScript RegExps",
   "main": "lib/rename-files.js",
   "bin": {
@@ -32,7 +32,7 @@
   },
   "homepage": "https://github.com/lleaff/node-rename-cli#readme",
   "engines": {
-    "node": ">=6"
+    "node": ">=8"
   },
   "devDependencies": {
     "babel-core": "^6.14.0",
